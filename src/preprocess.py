@@ -13,15 +13,15 @@ import fairCRF_utils as myutils
 
 def preprocess(margin, vSRL, is_dev = 1):
     if vSRL == 1:
-        print "preprocessing imSitu dataset"
+        print("preprocessing imSitu dataset")
         #load data, 1-- dev file
-        print "start loading potential files"
+        print("start loading potential files")
         file_num = int(myutils.configs['file_num'])
         arg_inner_all, value_frame_all, label_all,len_verb_file = myutils.load_potential_files(file_num, is_dev)
 
-        print "calcuating the accuracy before calibrating"
+        print("calcuating the accuracy before calibrating")
         acc = myutils.get_acc(arg_inner_all, value_frame_all, label_all, len_verb_file)
-        print "arg-acc cross before calibrating: ", acc
+        print("arg-acc cross before calibrating: {acc}")
 
         role_potential_file = myutils.configs['role_potential_file']
         words_file = myutils.configs['words_file']
@@ -38,17 +38,17 @@ def preprocess(margin, vSRL, is_dev = 1):
         all_woman_idx = [item for key in arg_idx_map for item in arg_idx_map[key] if '-f' in key]
 
         #generate the constraints
-        print "generating the constraints"
+        print("generating the constraints")
         training_file = myutils.configs['training_file']
         num_gender = int(myutils.configs['num_gender'])
         constraints = myutils.generate_gender_constraints(training_file, words_file, num_gender, cons_verbs, margin, verb_id, val = 0.0) #constraint = {verb_id:((m_c1,m_c2), (f_c1,f_c2), val)}
-        print "total number of constraints: ", len(constraints) * 2
-        print "-------------------"
+        print("total number of constraints: ", len(constraints) * 2)
+        print("-------------------")
         reargs = (arg_inner_all, value_frame_all, label_all, len_verb_file, all_man_idx, all_woman_idx, constraints, output_index, id_verb, verb_roles, cons_verbs, num_gender,words_file, training_file, role_potential_file, verb_id)
         return reargs
     
     else:
-        print "preprocessing COCO dataset"
+        print("preprocessing COCO dataset")
         train_samples = pickle.load(open(myutils.configs['coco_train_file']))
         dev_samples = pickle.load(open(myutils.configs['coco_dev_file']))
         test_samples = pickle.load(open(myutils.configs['coco_test_file']))
@@ -56,11 +56,11 @@ def preprocess(margin, vSRL, is_dev = 1):
         if is_dev == 1:
             arg_inner_raw = pickle.load(open(myutils.configs['coco_dev_potential']))
             target = np.array([sample['annotation'] for sample in dev_samples])
-            print "finish loading coco dev potential files"
+            print("finish loading coco dev potential files")
         else:
             arg_inner_raw = pickle.load(open(myutils.configs['coco_test_potential']))
             target = np.array([sample['annotation'] for sample in test_samples])
-            print "finish loading coco test potential files"
+            print("finish loading coco test potential files")
         
         arg_inner_list = []
         for i in range(len(arg_inner_raw)):
@@ -70,7 +70,7 @@ def preprocess(margin, vSRL, is_dev = 1):
         all_man_idx = [item for item in range(2,162)]
         all_woman_idx = [item for item in range(162, 322)]
         acc1 = cocoutils.accuracy(arg_inner_all, target)
-        print "accuracy before calibrating: ", acc1
+        print("accuracy before calibrating: {acc1}")
         
         top1_bef, pred_objs_bef = cocoutils.inference(arg_inner_all)
         id2obj = cocoutils.id2object
@@ -80,8 +80,8 @@ def preprocess(margin, vSRL, is_dev = 1):
         number_obj  = int(myutils.configs["number_obj"])
         all_constraints, cons_objs = cocoutils.get_constraints(train_samples, number_obj, margin) # in format {verb_id:((m_c1,m_c2), (f_c1,f_c2), val)}
         constraints = cocoutils.get_partial_cons(all_constraints, cons_verbs)
-        print "total number of constraints: ", len(constraints) * 2
-        print "--------------------------"
+        print("total number of constraints: ", len(constraints) * 2)
+        print("--------------------------")
         reargs = (constraints, all_man_idx, all_woman_idx, arg_inner_all, target, pred_objs_bef, cons_verbs, train_samples)
         return reargs
         

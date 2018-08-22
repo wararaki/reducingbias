@@ -8,7 +8,7 @@ from collections import Counter
 import operator
 import os
 import sys
-import ConfigParser
+import configparser
 import io
 import ast
 import inference_debias as cocoutils
@@ -18,19 +18,18 @@ import pickle
 
 def parse_config(config_file = "config.ini"):
     res = {}
-    with open(config_file) as f:
-        sample_config = f.read()
-    config = ConfigParser.RawConfigParser(allow_no_value=True)
-    config.readfp(io.BytesIO(sample_config))
+    config = configparser.ConfigParser()
+    config.read(config_file)
     for section in config.sections():
         if section == "list_values":
             cur_res = {}
-            for item in config.items(section):
-                cur_res[item[0]] =  ast.literal_eval(config.get(section, item[0]))
+            for key, value in config.items(section):
+                cur_res[key] = ast.literal_eval(value)
         else:
             cur_res = dict(config.items(section))
         z = res.update(cur_res)
     return res
+
 
 configs = parse_config()
 crf_path = configs['crf_path']
@@ -59,11 +58,11 @@ def load_potential_files(file_num, is_dev = 1):
         label_raw.append(data["label"]) #label
         len_verb_file.append(len(arg_inner_raw[i])) #number of instances for this verb i
         if i %50 == 0:
-            print ".",
+            print(".")
     if is_dev == 1:
-        print "\nFinish loading dev potential files"
+        print("\nFinish loading dev potential files")
     else:
-        print "\nFinish loading test potential files"
+        print("\nFinish loading test potential files")
     arg_inner_all = np.concatenate(arg_inner_raw,axis=0)
     value_frame_all = np.concatenate(value_frame_raw,axis=0)
     label_all = np.concatenate(label_raw,axis=0)
@@ -287,7 +286,7 @@ def process_mapfile(role_potential_file):
 
 def map_from_output( map_table, id_verb, verb_roles, vector ) :
   if len(vector) % 7 > 0:
-    print "Error: mapping a vector whose length is not divisible by 7"
+    print("Error: mapping a vector whose length is not divisible by 7")
     exit()
   rv = []
   for i in range(0, len(vector), 7):
@@ -390,7 +389,7 @@ id_verb, verb_roles, all_man_idx, all_woman_idx, get_acc, inference ):
     value_frame_tmp_test = test_value_frame_all.copy()
     label_tmp_test = test_label_all.copy()
     acc1 = get_acc(arg_inner_tmp_test, value_frame_tmp_test, label_tmp_test,test_len_verb_file)
-    print "ori arg acc on test without adopting lr: ", acc1
+    print(f"ori arg acc on test without adopting lr: {acc1}")
 #     lambdas = load_lambdas(margin)
     top1_test = inference(arg_inner_tmp_test, value_frame_tmp_test, label_tmp_test,
                                   output_index, id_verb, verb_roles)
@@ -410,7 +409,7 @@ id_verb, verb_roles, all_man_idx, all_woman_idx, get_acc, inference ):
                     arg_inner_tmp_test[i][arg_idx] -= lambdas[k][1] * constraints[k][1][1]
 
     acc1 = get_acc(arg_inner_tmp_test, value_frame_tmp_test, label_tmp_test, test_len_verb_file)
-    print "ori arg acc on test with adopting lr: ", acc1
+    print("ori arg acc on test with adopting lr: {acc1}")
     return arg_inner_tmp_test, value_frame_tmp_test, label_tmp_test
 
 def get_update_index(pred_results, i, arg_idx, is_man, vSRL):
@@ -457,7 +456,7 @@ def coco_get_res(arg_inner_tmp, cons_verbs, train_samples, pred_objs_bef):
 ####################for vSRL example ###################################
 def show_amplified_bias(margin, vSRL, is_dev = 1):
     if vSRL == 1:
-        print "start loading potential files"
+        print("start loading potential files")
         file_num = int(configs['file_num'])
         arg_inner_all, value_frame_all, label_all, len_verb_file = load_potential_files(file_num, is_dev)
         arg_inner_gold = arg_inner_all.copy()
@@ -481,7 +480,7 @@ def show_amplified_bias(margin, vSRL, is_dev = 1):
         res = res.merge(golden_verbs_df)
         res.sort_values(by = ['training_ratio'], ascending=1, inplace = True)
     else:
-        print "preprocessing COCO dataset"
+        print("preprocessing COCO dataset")
         train_samples = pickle.load(open(configs['coco_train_file']))
         dev_samples = pickle.load(open(configs['coco_dev_file']))
         count_train = cocoutils.compute_man_female_per_object_322(train_samples)
@@ -490,11 +489,11 @@ def show_amplified_bias(margin, vSRL, is_dev = 1):
         if is_dev == 1:
             arg_inner_raw = pickle.load(open(configs['coco_dev_potential']))
             target = np.array([sample['annotation'] for sample in dev_samples])
-            print "finish loading coco dev potential files"
+            print("finish loading coco dev potential files")
         else:
             arg_inner_raw = pickle.load(open(configs['coco_test_potential']))
             target = np.array([sample['annotation'] for sample in test_samples])
-            print "finish loading coco test potential files"
+            print("finish loading coco test potential files")
         arg_inner_list = []
         for i in range(len(arg_inner_raw)):
             arg_inner_list.append(arg_inner_raw[i]['output'])
